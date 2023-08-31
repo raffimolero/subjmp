@@ -5,25 +5,49 @@ struct Program {
     mem: [W<i8>; 128],
     acc: W<i8>,
     ip: W<i8>,
+    keys: i8,
 }
 
 impl Program {
+    const INPUT: usize = 126;
+    const OUTPUT: usize = 127;
+
     fn new(mem: [u8; 128]) -> Self {
         Self {
             mem: mem.map(|x: u8| W(x as i8)),
             acc: W(0),
             ip: W(0),
+            keys: 0,
+        }
+    }
+
+    fn input(&mut self, line: &str) {
+        for c in line.chars() {
+            match c {
+                '0' => self.keys |= 1 << 0,
+                '1' => self.keys |= 1 << 1,
+                'a' => self.keys |= 1 << 2,
+                'c' => self.keys |= 1 << 3,
+                _ => {}
+            }
         }
     }
 
     fn step(&mut self) {
         const HI: i8 = -0b_1000_0000;
         let val = &mut self.mem[(self.ip.0 & !HI) as usize];
+
         if val.0 & HI != 0 {
             *val -= self.acc;
             self.acc = *val;
         } else if self.acc.0 < 0 {
             self.ip += val.0 & !HI;
+        }
+
+        let mmap = &mut self.mem[Self::INPUT].0;
+        if *mmap == 0 {
+            const SENTINEL: i8 = 0b_0001_0000;
+            *mmap = self.keys | SENTINEL;
         }
     }
 }
@@ -39,15 +63,15 @@ impl Display for Program {
                 write!(f, "{l}{:>3}{r}", self.mem[i.0 as usize])?;
 
                 i += 1;
-                if i.0 == 126 {
+                if i.0 == Self::INPUT as i8 {
                     break 'outer;
                 }
             }
             writeln!(f)?;
         }
         writeln!(f)?;
-        writeln!(f, "Input: {:0>4b}", self.mem[126].0 & 0b_1111)?;
-        write!(f, "Output: {:0>8b}", self.mem[127])
+        writeln!(f, "Input: {:0>4b}", self.mem[Self::INPUT].0 & 0b_1111)?;
+        write!(f, "Output: {:0>8b}", self.mem[Self::OUTPUT])
     }
 }
 
@@ -77,7 +101,8 @@ fn main() {
     let mut program = Program::new(mem);
 
     println!("Enter.");
-    for _line in stdin().lines() {
+    for line in stdin().lines() {
+        program.input(&line.unwrap());
         program.step();
         println!("{program}");
     }
