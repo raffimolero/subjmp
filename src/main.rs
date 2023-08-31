@@ -12,12 +12,12 @@ impl Program {
     const INPUT: usize = 126;
     const OUTPUT: usize = 127;
 
-    fn new(acc: i8, mem: [u8; 128]) -> Self {
+    fn new(keys: i8, ip: i8, acc: i8, mem: [i16; 128]) -> Self {
         Self {
-            mem: mem.map(|x: u8| W(x as i8)),
+            mem: mem.map(|x: i16| W(x as i8)),
             acc: W(acc),
-            ip: W(0),
-            keys: 0,
+            ip: W(ip),
+            keys,
         }
     }
 
@@ -37,15 +37,17 @@ impl Program {
         const HI: i8 = -0b_1000_0000;
         let cmd = self.mem[self.ip.0 as usize];
         let addr = (cmd.0 & !HI) as usize;
+        dbg!(addr);
         let val = &mut self.mem[addr];
 
         if cmd.0 & HI != 0 {
             *val -= self.acc;
             self.acc = *val;
         } else if self.acc.0 < 0 {
-            self.ip += val.0 & !HI;
+            self.ip += cmd.0 & !HI;
         }
         self.ip += 1;
+        self.ip &= !HI;
 
         let mmap = &mut self.mem[Self::INPUT].0;
         if *mmap == 0 {
@@ -65,7 +67,7 @@ impl Display for Program {
         for _ in 0..16 {
             for _ in 0..8 {
                 let (l, r) = if i == self.ip { ('[', ']') } else { (' ', ' ') };
-                write!(f, "{l}{:>3}{r}", self.mem[i.0 as usize])?;
+                write!(f, "{l}{:>4}{r}", self.mem[i.0 as usize])?;
 
                 i += 1;
             }
@@ -82,7 +84,7 @@ fn main() {
     let mem = [
     //    _0    _1    _2    _3    _4    _5    _6    _7
     //    _8    _9    _a    _b    _c    _d    _e    _f
-        0x84,    0,    0,    0,    0,    0,    0,    0, // 8_
+        0xff, 0xfe, 0xfe, 0x85,128-5,   -1,    0,    0, // 8_
            0,    0,    0,    0,    0,    0,    0,    0,
 
            0,    0,    0,    0,    0,    0,    0,    0, // 9_
@@ -104,16 +106,17 @@ fn main() {
            0,    0,    0,    0,    0,    0,    0,    0,
 
            0,    0,    0,    0,    0,    0,    0,    0, // f_
-           0,    0,    0,    0,    0,    0,    0,
-        0b_1010_1110, // &output = 127
+           0,    0,    0,    0,    0,    0,
+        0b_0001_0000, // &input  = 126
+        0b_0000_0000, // &output = 127
     ];
 
-    let mut program = Program::new(-1, mem);
+    let mut program = Program::new(0b_0000, 0x01, -1, mem);
+    println!("{program}");
 
-    println!("Enter.");
     for line in stdin().lines() {
         program.input(&line.unwrap());
-        println!("{program}");
         program.step();
+        println!("{program}");
     }
 }
