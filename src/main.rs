@@ -48,6 +48,7 @@ impl Program {
         if *mmap == 0 {
             const SENTINEL: i8 = 0b_0001_0000;
             *mmap = self.keys | SENTINEL;
+            self.keys = 0;
         }
     }
 }
@@ -56,21 +57,19 @@ impl Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "acc: {:>3}", self.acc)?;
         writeln!(f, "ip: {:>3}", self.ip)?;
+
         let mut i = W(0_i8);
-        'outer: for _ in 0..16 {
+        for _ in 0..16 {
             for _ in 0..8 {
                 let (l, r) = if i == self.ip { ('[', ']') } else { (' ', ' ') };
                 write!(f, "{l}{:>3}{r}", self.mem[i.0 as usize])?;
 
                 i += 1;
-                if i.0 == Self::INPUT as i8 {
-                    break 'outer;
-                }
             }
             writeln!(f)?;
         }
-        writeln!(f)?;
-        writeln!(f, "Input: {:0>4b}", self.mem[Self::INPUT].0 & 0b_1111)?;
+
+        writeln!(f, "Input: {:0>4b}", self.keys)?;
         write!(f, "Output: {:0>8b}", self.mem[Self::OUTPUT])
     }
 }
