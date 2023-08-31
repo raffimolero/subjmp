@@ -12,10 +12,10 @@ impl Program {
     const INPUT: usize = 126;
     const OUTPUT: usize = 127;
 
-    fn new(mem: [u8; 128]) -> Self {
+    fn new(acc: i8, mem: [u8; 128]) -> Self {
         Self {
             mem: mem.map(|x: u8| W(x as i8)),
-            acc: W(0),
+            acc: W(acc),
             ip: W(0),
             keys: 0,
         }
@@ -35,9 +35,11 @@ impl Program {
 
     fn step(&mut self) {
         const HI: i8 = -0b_1000_0000;
-        let val = &mut self.mem[(self.ip.0 & !HI) as usize];
+        let cmd = self.mem[self.ip.0 as usize];
+        let addr = (cmd.0 & !HI) as usize;
+        let val = &mut self.mem[addr];
 
-        if val.0 & HI != 0 {
+        if cmd.0 & HI != 0 {
             *val -= self.acc;
             self.acc = *val;
         } else if self.acc.0 < 0 {
@@ -55,8 +57,8 @@ impl Program {
 
 impl Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "acc: {:>3}", self.acc)?;
         writeln!(f, "ip: {:>3}", self.ip)?;
+        writeln!(f, "acc: {:>3}", self.acc)?;
 
         let mut i = W(0_i8);
         for _ in 0..16 {
@@ -77,32 +79,31 @@ impl Display for Program {
 fn main() {
     #[rustfmt::skip]
     let mem = [
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,
-        0b_0001_0000, // &input = 126
+        0x81,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,   0,
+           0,   0,   0,   0,   0,   0,   0,
         0b_1010_1110, // &output = 127
     ];
 
-    let mut program = Program::new(mem);
+    let mut program = Program::new(-1, mem);
 
     println!("Enter.");
     for line in stdin().lines() {
         program.input(&line.unwrap());
-        program.step();
         println!("{program}");
+        program.step();
     }
 }
