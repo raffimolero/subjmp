@@ -19,7 +19,7 @@ impl Program {
     fn step(&mut self) {
         const HI: i8 = -0b_1000_0000;
         let val = &mut self.mem[(self.ip.0 & !HI) as usize];
-        if val.0 & HI == 0 {
+        if val.0 & HI != 0 {
             *val -= self.acc;
             self.acc = *val;
         } else if self.acc.0 < 0 {
