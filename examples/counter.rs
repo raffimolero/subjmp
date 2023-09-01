@@ -37,5 +37,5 @@ fn main() {
         0b_0000_0000, // &output = 0xff
     ];
 
-    Program::new(0b_0000, 0x00, -1, mem).run().unwrap();
+    Program::new(0b_0000, 0x00, -1, mem).choose_run();
 }

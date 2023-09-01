@@ -90,7 +90,7 @@ impl Program {
 
     fn prompt(&self) -> String {
         println!("{self}");
-        print!("[01ab]> ");
+        print!("[01ac]> ");
         stdout().flush().unwrap();
         let line = stdin().lines().next().unwrap().unwrap();
         println!();
@@ -101,6 +101,21 @@ impl Program {
         loop {
             self.input_line(&self.prompt());
             self.step();
+        }
+    }
+
+    pub fn choose_run(&mut self) {
+        let mut args = std::env::args();
+        args.next();
+        match args.next().as_deref() {
+            Some("run") => self.run().unwrap(),
+            None | Some("step") => self.run_stepped(),
+            Some("rle") => match args.next().as_deref() {
+                Some("clip") => todo!(),
+                None | Some("stdout") => println!("{}", self.rle()),
+                _ => panic!("unexpected argument, did you want `rle clip`?"),
+            },
+            _ => panic!("unexpected argument"),
         }
     }
 }
