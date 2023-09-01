@@ -111,7 +111,7 @@ impl Program {
             Some("run") => self.run().unwrap(),
             None | Some("step") => self.run_stepped(),
             Some("rle") => match args.next().as_deref() {
-                Some("clip") => todo!(),
+                Some("clip") => cli_clipboard::set_contents(self.rle()).unwrap(),
                 None | Some("stdout") => println!("{}", self.rle()),
                 _ => panic!("unexpected argument, did you want `rle clip`?"),
             },
