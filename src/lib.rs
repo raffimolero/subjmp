@@ -74,6 +74,7 @@ impl Program {
             self.acc = *val;
         } else if self.acc.0 < 0 {
             self.ip += cmd.0 & !HI;
+            self.ip -= 1;
         }
         self.ip += 1;
         self.ip &= !HI;
