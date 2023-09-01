@@ -1,3 +1,4 @@
+pub mod rle;
 pub mod runtime;
 
 pub mod prelude {
