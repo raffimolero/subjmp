@@ -148,7 +148,7 @@ impl App for Program {
                     stdout(),
                     // Clear(ClearType::All),
                     MoveTo(0, 0),
-                    Print(self.to_string())
+                    Print(self.to_string() + "\n[ca10]"),
                 )?;
             }
             runtime::RuntimeEvent::Input(Event::Key(KeyEvent {
