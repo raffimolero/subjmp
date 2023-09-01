@@ -1,4 +1,8 @@
-mod runtime;
+pub mod runtime;
+
+pub mod prelude {
+    pub use super::{runtime::App, Program};
+}
 
 use std::{
     fmt::Display,
@@ -13,23 +17,22 @@ use crossterm::{
     execute,
     style::Print,
     terminal::{Clear, ClearType},
-    ExecutableCommand,
 };
 use runtime::App;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-struct Program {
-    mem: [W<i8>; 128],
-    acc: W<i8>,
-    ip: W<i8>,
-    keys: i8,
+pub struct Program {
+    pub mem: [W<i8>; 128],
+    pub acc: W<i8>,
+    pub ip: W<i8>,
+    pub keys: i8,
 }
 
 impl Program {
     const INPUT: usize = 126;
     const OUTPUT: usize = 127;
 
-    fn new(keys: i8, ip: i8, acc: i8, mem: [i16; 128]) -> Self {
+    pub fn new(keys: i8, ip: i8, acc: i8, mem: [i16; 128]) -> Self {
         Self {
             mem: mem.map(|x: i16| W(x as i8)),
             acc: W(acc),
@@ -60,7 +63,7 @@ impl Program {
         }
     }
 
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         const HI: i8 = -0b_1000_0000;
         let cmd = self.mem[self.ip.0 as usize];
         let addr = (cmd.0 & !HI) as usize;
@@ -92,7 +95,7 @@ impl Program {
         line
     }
 
-    fn run_step(&mut self) {
+    pub fn run_stepped(&mut self) {
         loop {
             self.input_line(&self.prompt());
             self.step();
@@ -121,7 +124,7 @@ impl Display for Program {
     }
 }
 
-enum AppEvent {
+pub enum AppEvent {
     Tick,
 }
 
@@ -164,44 +167,4 @@ impl App for Program {
         }
         Ok(Continue(()))
     }
-}
-
-fn main() {
-    #[rustfmt::skip]
-    let mem = [
-    // LEGEND:
-    //    0x## => instruction
-    //    num  => used memory location
-    //      0  => unused
-    // ------------------------------------------------------
-    //    _0    _1    _2    _3    _4    _5    _6    _7
-    //    _8    _9    _a    _b    _c    _d    _e    _f
-        0xff, 0x86, 0x86, 0x85, 0x7b,   -1,   -0,    0, // 8_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // 9_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // a_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // b_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // c_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // d_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // e_
-           0,    0,    0,    0,    0,    0,    0,    0,
-
-           0,    0,    0,    0,    0,    0,    0,    0, // f_
-           0,    0,    0,    0,    0,    0,
-        0b_0001_0000, // &input  = 0xfe
-        0b_0000_0000, // &output = 0xff
-    ];
-
-    Program::new(0b_0000, 0x00, -1, mem).run().unwrap();
 }
