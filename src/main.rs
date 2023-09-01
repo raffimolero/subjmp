@@ -1,8 +1,21 @@
+mod runtime;
+
 use std::{
     fmt::Display,
     io::{stdin, stdout, Write},
     num::Wrapping as W,
+    ops::ControlFlow::{self, Continue},
 };
+
+use crossterm::{
+    cursor::MoveTo,
+    event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    execute,
+    style::Print,
+    terminal::{Clear, ClearType},
+    ExecutableCommand,
+};
+use runtime::App;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Program {
@@ -25,7 +38,7 @@ impl Program {
         }
     }
 
-    fn input(&mut self, line: &str) {
+    fn input_line(&mut self, line: &str) {
         for c in line.chars() {
             match c {
                 '0' => self.keys |= 1 << 0,
@@ -34,6 +47,16 @@ impl Program {
                 'c' => self.keys |= 1 << 3,
                 _ => {}
             }
+        }
+    }
+
+    fn input_key(&mut self, key: KeyCode) {
+        match key {
+            KeyCode::Char('0') => self.keys |= 1 << 0,
+            KeyCode::Char('1') => self.keys |= 1 << 1,
+            KeyCode::Char('a') => self.keys |= 1 << 2,
+            KeyCode::Char('c') => self.keys |= 1 << 3,
+            _ => {}
         }
     }
 
@@ -69,9 +92,9 @@ impl Program {
         line
     }
 
-    fn run(&mut self) {
+    fn run_step(&mut self) {
         loop {
-            self.input(&self.prompt());
+            self.input_line(&self.prompt());
             self.step();
         }
     }
@@ -95,6 +118,51 @@ impl Display for Program {
 
         writeln!(f, "Input: {:0>4b}", self.keys)?;
         write!(f, "Output: {:0>8b}", self.mem[Self::OUTPUT])
+    }
+}
+
+enum AppEvent {
+    Tick,
+}
+
+impl App for Program {
+    type Event = AppEvent;
+
+    fn start(&mut self, runtime: &mut runtime::Runtime<Self::Event>) {
+        runtime.schedule_secs(0.0, AppEvent::Tick);
+    }
+
+    fn event(
+        &mut self,
+        runtime: &mut runtime::Runtime<Self::Event>,
+        event: runtime::RuntimeEvent<Self::Event>,
+    ) -> std::io::Result<ControlFlow<()>> {
+        match event {
+            runtime::RuntimeEvent::Scheduled(AppEvent::Tick) => {
+                runtime.schedule_secs(0.1, AppEvent::Tick);
+                self.step();
+                execute!(
+                    stdout(),
+                    // Clear(ClearType::All),
+                    MoveTo(0, 0),
+                    Print(self.to_string())
+                )?;
+            }
+            runtime::RuntimeEvent::Input(Event::Key(KeyEvent {
+                code: KeyCode::Char('c'),
+                modifiers: KeyModifiers::CONTROL,
+                kind: KeyEventKind::Press,
+                state: _,
+            })) => return Ok(ControlFlow::Break(())),
+            runtime::RuntimeEvent::Input(Event::Key(KeyEvent {
+                code,
+                modifiers: _,
+                kind: KeyEventKind::Press,
+                state: _,
+            })) => self.input_key(code),
+            _ => {}
+        }
+        Ok(Continue(()))
     }
 }
 
@@ -135,5 +203,5 @@ fn main() {
         0b_0000_0000, // &output = 0xff
     ];
 
-    Program::new(0b_0000, 0x00, -1, mem).run();
+    Program::new(0b_0000, 0x00, -1, mem).run().unwrap();
 }
